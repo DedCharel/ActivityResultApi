@@ -1,11 +1,14 @@
 package ru.nvgsoft.activityresultapi
 
-import android.app.ComponentCaller
+import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.widget.Button
 import android.widget.ImageView
 import android.widget.TextView
+import androidx.activity.result.contract.ActivityResultContract
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 
 class MainActivity : AppCompatActivity() {
@@ -20,48 +23,71 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
         initViews()
 
-        getUsernameButton.setOnClickListener {
-            UsernameActivity.newIntent(this).apply {
-                startActivityForResult(this, RC_USERNAME)
-            }
 
+//        val contactUsername = object : ActivityResultContract<Intent, String?>() {
+//            override fun createIntent(context: Context, input: Intent): Intent {
+//                return input
+//            }
+//
+//            override fun parseResult(resultCode: Int, intent: Intent?): String? {
+//                if (resultCode == RESULT_OK) {
+//                    return intent?.getStringExtra(UsernameActivity.EXTRA_USERNAME) ?: ""
+//                }
+//                return null
+//            }
+//
+//        }
+//
+//        val launcherUsername = registerForActivityResult(contactUsername) {
+//            if (!it.isNullOrBlank()) {
+//                usernameTextView.text = it
+//            }
+//        }
+        val contactUsername = ActivityResultContracts.StartActivityForResult()
+        val launcherUsername = registerForActivityResult(contactUsername) {
+            if (it.resultCode == RESULT_OK) {
+                usernameTextView.text = it.data?.getStringExtra(UsernameActivity.EXTRA_USERNAME)
+            }
+        }
+
+//        val contractImage = object : ActivityResultContract<String, Uri?>() {
+//            override fun createIntent(context: Context, input: String): Intent {
+//                return Intent(Intent.ACTION_PICK).apply {
+//                    type = input  //MIME types
+//                }
+//            }
+//
+//            override fun parseResult(resultCode: Int, intent: Intent?): Uri? {
+//                if (resultCode == RESULT_OK) {
+//                    return intent?.data
+//                }
+//                return null
+//            }
+//
+//        }
+//
+        val contractImage = ActivityResultContracts.GetContent()
+
+        val launchImage = registerForActivityResult(contractImage) {
+            if (it != null) {
+                imageFromGalleryImageView.setImageURI(it)
+            }
+        }
+
+
+        getUsernameButton.setOnClickListener {
+            launcherUsername.launch(UsernameActivity.newIntent(this))
         }
         getImageButton.setOnClickListener {
-            Intent(Intent.ACTION_PICK).apply {
-                type = "image/*"  //MIME types
-                startActivityForResult(this, RC_IMAGE)
-            }
+            launchImage.launch("image/*")
         }
     }
 
-    override fun onActivityResult(
-        requestCode: Int,
-        resultCode: Int,
-        data: Intent?
-    ) {
-        super.onActivityResult(requestCode, resultCode, data)
-        if (resultCode == RC_USERNAME && resultCode == RESULT_OK) {
-            val username = data?.getStringExtra(UsernameActivity.EXTRA_USERNAME) ?: ""
-            usernameTextView.text = username
-        }
-
-        if (requestCode == RC_IMAGE && resultCode == RESULT_OK) {
-            val uri = data?.data
-            imageFromGalleryImageView.setImageURI(uri)
-        }
-
-    }
 
     private fun initViews() {
         getUsernameButton = findViewById(R.id.get_username_button)
         usernameTextView = findViewById(R.id.username_textview)
         getImageButton = findViewById(R.id.get_image_button)
         imageFromGalleryImageView = findViewById(R.id.image_from_gallery_imageview)
-    }
-
-    companion object {
-
-        private const val RC_USERNAME = 100
-        private const val RC_IMAGE = 101
     }
 }
